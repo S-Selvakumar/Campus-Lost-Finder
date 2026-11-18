@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campus Lost Item Finder</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%94%8E%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F0FB; --surface:#FFFFFF; --ink:#1F1B4D; --muted:#5D5A80; --line:#D9D5EE;
+  --nav-bg:#2E2A7A; --nav-ink:#FFFFFF;
+  --lost-band:#C93C3C; --found-band:#17755E;
+  --tag:#FF9F45; --tag-ink:#2B1600; --thumb:#E6E2F6; --thumb-ink:#8C87B5;
+  --wait-bg:#FFE9A8; --wait-ink:#5A4300; --ok-bg:#D6F1E6; --ok-ink:#0E5A46;
+  --open-bg:#E6E2F6; --open-ink:#3A356F; --done-bg:#1F1B4D; --done-ink:#FFFFFF;
+  --focus:#5B4BFF;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12102B; --surface:#1C1940; --ink:#ECEAFB; --muted:#A7A3CF; --line:#322E63;
+    --nav-bg:#0C0A22; --nav-ink:#FFFFFF;
+    --lost-band:#B83232; --found-band:#157A62;
+    --thumb:#262250; --thumb-ink:#6C67A0;
+    --wait-bg:#4A3D10; --wait-ink:#FFE9A8; --ok-bg:#14352E; --ok-ink:#8FE3C4;
+    --open-bg:#2A2660; --open-ink:#CFCBF0; --done-bg:#ECEAFB; --done-ink:#1F1B4D;
+    --focus:#A79BFF;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12102B; --surface:#1C1940; --ink:#ECEAFB; --muted:#A7A3CF; --line:#322E63;
+  --nav-bg:#0C0A22; --nav-ink:#FFFFFF;
+  --lost-band:#B83232; --found-band:#157A62;
+  --thumb:#262250; --thumb-ink:#6C67A0;
+  --wait-bg:#4A3D10; --wait-ink:#FFE9A8; --ok-bg:#14352E; --ok-ink:#8FE3C4;
+  --open-bg:#2A2660; --open-ink:#CFCBF0; --done-bg:#ECEAFB; --done-ink:#1F1B4D;
+  --focus:#A79BFF;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;display:flex;flex-direction:column}
+h1,h2,h3{font-family:"Bricolage Grotesque",Figtree,system-ui,sans-serif;margin:0;line-height:1.08;letter-spacing:-.01em}
+h1{font-size:clamp(2rem,5.2vw,3.3rem);font-weight:800}
+h2{font-size:1.5rem;font-weight:800}
+h3{font-size:1.1rem;font-weight:600}
+p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+/* header */
+.top{background:var(--nav-bg);color:var(--nav-ink)}
+.top-in{max-width:1080px;margin:0 auto;padding:12px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px}
+.brand{display:flex;align-items:center;gap:10px;font:800 1.15rem "Bricolage Grotesque",Figtree,sans-serif;background:none;border:0;cursor:pointer;color:inherit;padding:4px 0}
+.nav{display:flex;flex-wrap:wrap;gap:4px;flex:1}
+.nav button{background:none;border:0;color:inherit;opacity:.78;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:500}
+.nav button:hover{opacity:1;background:rgba(255,255,255,.08)}
+.nav button[aria-current="page"]{opacity:1;box-shadow:inset 0 -3px 0 var(--tag);border-radius:8px 8px 0 0}
+.who{display:flex;align-items:center;gap:10px;font-size:.92rem}
+
+/* buttons */
+.btn{background:var(--tag);color:var(--tag-ink);border:0;border-radius:9px;padding:9px 16px;font-weight:600;cursor:pointer}
+.btn:hover{filter:brightness(.94)}
+.btn.big{padding:13px 22px;font-size:1.05rem}
+.btn.ghost{background:transparent;color:inherit;border:1.5px solid currentColor}
+.btn.ok{background:var(--found-band);color:#fff}
+.btn.bad{background:transparent;color:var(--lost-band);border:1.5px solid var(--lost-band)}
+.top .btn.ghost{color:var(--nav-ink)}
+:root[data-theme="dark"] .btn.bad{color:#FF8E8E;border-color:#FF8E8E}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn.bad{color:#FF8E8E;border-color:#FF8E8E}}
+.btn.small{padding:6px 11px;font-size:.88rem}
+
+main{flex:1;width:100%;max-width:1080px;margin:0 auto;padding:34px 20px 50px}
+.lead{color:var(--muted);max-width:60ch;margin-top:12px;font-size:1.06rem}
+.sub{margin:34px 0 12px}
+.empty{background:var(--surface);border:1.5px dashed var(--line);border-radius:12px;padding:22px;color:var(--muted)}
+.empty .btn{margin-top:12px}
+
+/* search + filters */
+.search{margin-top:24px}
+.search input{width:100%;font-size:1.2rem;padding:16px 18px;border:2px solid var(--ink);border-radius:12px;background:var(--surface);color:var(--ink)}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+.segb{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.segb button{background:none;border:0;padding:8px 14px;cursor:pointer;font-weight:500}
+.segb button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+select,input,textarea{font:inherit;color:var(--ink)}
+.filters select,.form select,.form input:not([type=radio]):not([type=file]),.form textarea,.claim textarea{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:9px;background:var(--surface)}
+.filters select{width:auto}
+.chk{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:.93rem}
+.count{margin-top:20px;color:var(--muted)}
+
+/* item tags */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:22px 18px;margin-top:14px}
+.tag{position:relative}
+.tag-btn{all:unset;box-sizing:border-box;display:flex;flex-direction:column;width:100%;height:100%;background:var(--surface);border:1.5px solid var(--line);border-radius:10px 10px 18px 18px;overflow:hidden;cursor:pointer;position:relative;transition:transform .15s}
+.tag-btn:hover{transform:translateY(-3px)}
+.tag-btn:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.hole{position:absolute;top:8px;left:50%;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--bg);border:1.5px solid rgba(0,0,0,.25);z-index:2}
+.band{display:flex;justify-content:space-between;align-items:baseline;padding:28px 14px 9px;color:#fff;font-weight:600}
+.band em{font-style:normal;font-weight:400;font-size:.85rem;opacity:.9}
+.lost .band{background:var(--lost-band)}
+.found .band{background:var(--found-band)}
+.thumb{display:block;height:118px;background:var(--thumb);overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.ph{display:flex;height:100%;align-items:center;justify-content:center;font:800 1.35rem "Bricolage Grotesque",Figtree,sans-serif;color:var(--thumb-ink);padding:8px;text-align:center}
+.body{display:flex;flex-direction:column;gap:5px;padding:12px 14px 15px;align-items:flex-start}
+.body strong{font-weight:600;line-height:1.25}
+.meta{color:var(--muted);font-size:.92rem}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.82rem;font-weight:600;margin-top:2px}
+.pill.open{background:var(--open-bg);color:var(--open-ink)}
+.pill.wait{background:var(--wait-bg);color:var(--wait-ink)}
+.pill.ok{background:var(--ok-bg);color:var(--ok-ink)}
+.pill.done{background:var(--done-bg);color:var(--done-ink)}
+
+/* forms */
+.narrow{max-width:600px}
+.form{display:flex;flex-direction:column;gap:16px;margin-top:24px}
+.form label,.claim label{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:.95rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:540px){.two{grid-template-columns:1fr}}
+.seg{border:0;padding:0;margin:0;display:flex;gap:10px;flex-wrap:wrap}
+.seg legend{font-weight:600;font-size:.95rem;margin-bottom:8px;padding:0}
+.seg label{position:relative;flex:1;min-width:150px}
+.seg input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.seg span{display:block;text-align:center;padding:12px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);font-weight:600}
+.seg input[value=lost]:checked+span{background:var(--lost-band);color:#fff;border-color:transparent}
+.seg input[value=found]:checked+span{background:var(--found-band);color:#fff;border-color:transparent}
+.seg input:focus-visible+span{outline:3px solid var(--focus);outline-offset:2px}
+.preview{max-width:220px;border-radius:10px;border:1.5px solid var(--line)}
+.hint{color:var(--muted);font-size:.9rem;font-weight:400}
+.tabs{display:flex;gap:6px;margin:22px 0 4px}
+.tabs button{background:none;border:0;padding:8px 14px;border-radius:8px 8px 0 0;cursor:pointer;font-weight:600;color:var(--muted)}
+.tabs button[aria-pressed="true"]{color:var(--ink);box-shadow:inset 0 -3px 0 var(--tag)}
+.demo{margin-top:28px;padding:16px;border:1.5px dashed var(--line);border-radius:12px;background:var(--surface)}
+.demo p{margin-bottom:10px;color:var(--muted);font-size:.95rem}
+.demo .row2{display:flex;gap:10px;flex-wrap:wrap}
+
+/* lists */
+.rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.row{all:unset;box-sizing:border-box;width:100%;display:flex;justify-content:space-between;align-items:center;gap:14px;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer}
+.row:focus-visible{outline:3px solid var(--focus)}
+.rowstatic{display:flex;justify-content:space-between;align-items:center;gap:14px;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:12px 14px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:22px}
+.stat{background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:14px 16px}
+.stat b{display:block;font:800 2rem "Bricolage Grotesque",Figtree,sans-serif;line-height:1}
+.stat span{color:var(--muted);font-size:.92rem}
+.claimcard{background:var(--surface);border:1.5px solid var(--line);border-left:6px solid var(--tag);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.claimcard blockquote{margin:0;padding:8px 12px;background:var(--bg);border-radius:8px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.tablewrap{overflow-x:auto;border:1.5px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-weight:600;color:var(--muted);font-size:.9rem}
+tr:last-child td{border-bottom:0}
+
+/* dialog */
+dialog{border:0;padding:0;border-radius:18px;max-width:560px;width:calc(100% - 24px);max-height:90vh;background:var(--surface);color:var(--ink);overflow:auto}
+dialog::backdrop{background:rgba(8,12,24,.65)}
+.dhead{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;color:#fff;font-weight:600}
+.dhead.lost{background:var(--lost-band)}
+.dhead.found{background:var(--found-band)}
+.dhead button{background:rgba(255,255,255,.18);border:0;border-radius:8px;padding:5px 12px;cursor:pointer;color:#fff}
+.dbody{padding:20px;display:flex;flex-direction:column;gap:14px}
+.dimg{width:100%;max-height:260px;object-fit:cover;border-radius:12px;display:block}
+.dph{height:120px;border-radius:12px;background:var(--thumb)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:0}
+dt{color:var(--muted)}
+dd{margin:0;font-weight:500}
+.note{background:var(--bg);border-radius:10px;padding:12px 14px;color:var(--muted)}
+.claim{display:flex;flex-direction:column;gap:10px;border-top:1.5px solid var(--line);padding-top:14px}
+.claim textarea{resize:vertical}
+.steps{display:flex;gap:6px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+.steps span{padding:2px 9px;border-radius:99px;background:var(--bg)}
+.steps span.on{background:var(--tag);color:var(--tag-ink);font-weight:600}
+
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,30px);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:10px;max-width:min(92vw,460px);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+footer{border-top:1.5px solid var(--line);padding:16px 20px;color:var(--muted);font-size:.9rem;text-align:center}
+footer button{background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;margin-left:6px}
+@media (prefers-reduced-motion: reduce){.tag-btn,.toast{transition:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in" id="hdr"></div></header>
+<main id="main"></main>
+<footer>Demo data is saved in this browser only.<button data-act="reset" id="resetbtn">Reset demo data</button></footer>
+<dialog id="dlg" aria-label="Item details"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+const KEY="clf_demo_v1", SKEY="clf_demo_session";
+const CATS=["ID card","Electronics","Books","Bottle","Keys","Wallet","Clothing","Bag","Other"];
+const LOCS=["Library","Main canteen","CSE block","Mechanical block","Auditorium","Hostel","Sports ground","Bus stop","Parking","Other"];
+const STOP=new Set(["the","and","with","has","have","for","from","near","was","are","inside","one","this","that","found","lost","left"]);
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const dlg=$("#dlg");
+let db=null, me=null, page="browse", authTab="login", authRole="student", openId=null, pendingImg="", resetArmed=false;
+const F={q:"",type:"all",cat:"",loc:"",closed:false};
+
+/* storage (always guarded) */
+function sGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function sSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
+function sDel(k){try{localStorage.removeItem(k)}catch(e){}}
+function save(){if(!sSet(KEY,JSON.stringify(db)))toast("Could not save. Changes will last only until you close this page.")}
+function nid(){db.seq=(db.seq||100)+1;return db.seq}
+
+/* helpers */
+function today(){return new Date().toLocaleDateString("en-CA")}
+function daysAgo(n){const d=new Date();d.setDate(d.getDate()-n);return d.toLocaleDateString("en-CA")}
+function fmtDate(d){const n=Math.round((new Date(today())-new Date(d))/864e5);if(n<=0)return"Today";if(n===1)return"Yesterday";if(n<7)return n+" days ago";return new Date(d).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}
+function byId(id){return db.items.find(i=>i.id===id)}
+function userName(id){const u=db.users.find(x=>x.id===id);return u?u.name:"Unknown"}
+function opts(a,sel){return a.map(x=>`<option${x===sel?" selected":""}>${esc(x)}</option>`).join("")}
+async function hash(p){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("clf:"+p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}catch(e){return"x"+btoa(unescape(encodeURIComponent(p)))}}
+let toastT;
+function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),3600)}
+
+/* demo data */
+async function seed(){
+  const pa=await hash("admin123"), ps=await hash("student123");
+  db={seq:100,
+    users:[
+      {id:1,name:"Admin Office",email:"admin@college.edu",pw:pa,role:"admin"},
+      {id:2,name:"Selva S",email:"student@college.edu",pw:ps,role:"student"},
+      {id:3,name:"Divya S",email:"divya@college.edu",pw:ps,role:"student"}
+    ],
+    items:[
+      {id:1,type:"found",title:"Blue steel water bottle",category:"Bottle",description:"Left on a second-floor reading table. Cricket bat sticker on the side.",image:"",location:"Library",date:daysAgo(1),status:"open",userId:3,holding:"Library help desk"},
+      {id:2,type:"lost",title:"Black wallet with college ID",category:"Wallet",description:"Black leather wallet with my college ID card and a bus pass inside. Lost after lunch.",image:"",location:"Main canteen",date:daysAgo(2),status:"open",userId:2,holding:""},
+      {id:3,type:"found",title:"Wallet with ID card",category:"Wallet",description:"Black leather wallet handed in at the canteen counter. ID card inside.",image:"",location:"Main canteen",date:daysAgo(1),status:"open",userId:3,holding:"Security office"},
+      {id:4,type:"lost",title:"Casio scientific calculator",category:"Electronics",description:"Grey Casio fx-991 calculator with my initials scratched on the back.",image:"",location:"CSE block",date:daysAgo(3),status:"open",userId:3,holding:""},
+      {id:5,type:"found",title:"Bunch of keys with red tag",category:"Keys",description:"Four keys on a ring with a red plastic tag.",image:"",location:"Parking",date:daysAgo(4),status:"open",userId:2,holding:"Security office"},
+      {id:6,type:"lost",title:"Data Structures notebook",category:"Books",description:"Blue spiral notebook with unit 3 and 4 notes. Name written on the first page.",image:"",location:"Auditorium",date:daysAgo(5),status:"open",userId:2,holding:""},
+      {id:7,type:"found",title:"White earbuds case",category:"Electronics",description:"White wireless earbuds case with a small scratch on the lid.",image:"",location:"CSE block",date:daysAgo(2),status:"open",userId:2,holding:"Department office"},
+      {id:8,type:"lost",title:"Grey hoodie",category:"Clothing",description:"Plain grey zip hoodie, size M, left on the hostel common room sofa.",image:"",location:"Hostel",date:daysAgo(6),status:"open",userId:3,holding:""},
+      {id:9,type:"found",title:"Umbrella with wooden handle",category:"Other",description:"Black umbrella found at the bus stop after the rain.",image:"",location:"Bus stop",date:daysAgo(9),status:"returned",userId:3,holding:""}
+    ],
+    claims:[
+      {id:50,itemId:3,userId:2,message:"There is my ID card, a bus pass and a folded 500 rupee note in the coin pocket.",status:"pending",created:daysAgo(0)}
+    ]};
+}
+
+/* matching */
+function words(s){return s.toLowerCase().replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(w=>w.length>2&&!STOP.has(w))}
+function score(a,b){
+  let s=0;
+  if(a.category===b.category)s+=3;
+  if(a.location===b.location)s+=2;
+  const wa=new Set(words(a.title+" "+a.description));
+  const shared=new Set(words(b.title+" "+b.description).filter(w=>wa.has(w))).size;
+  s+=Math.min(shared,3);
+  if(Math.abs((new Date(a.date)-new Date(b.date))/864e5)<=7)s+=1;
+  return s;
+}
+function matchesFor(it){
+  return db.items.filter(o=>o.type!==it.type&&o.status==="open"&&o.id!==it.id)
+    .map(o=>({o,s:score(it,o)})).filter(x=>x.s>=5).sort((a,b)=>b.s-a.s).slice(0,3);
+}
+function pending(it){return db.claims.filter(c=>c.itemId===it.id&&c.status==="pending")}
+function statusOf(it){
+  if(it.status==="returned")return["Returned","done"];
+  if(it.status==="claimed")return["Claim approved","ok"];
+  if(pending(it).length)return["Claim pending","wait"];
+  return[it.type==="lost"?"Still missing":"Waiting for owner","open"];
+}
+
+/* header */
+function renderHeader(){
+  const links=[["browse","Browse"],["report","Report an item"]];
+  if(me)links.push(["mine","My activity"]);
+  if(me&&me.role==="admin")links.push(["admin","Admin"]);
+  $("#hdr").innerHTML=`
+    <button class="brand" data-act="nav" data-page="browse" aria-label="Campus Lost Item Finder home">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><path d="M5 3h16a2 2 0 0 1 2 2v14l-4 5H7l-4-5V5a2 2 0 0 1 2-2z" fill="#FF9F45"/><circle cx="13" cy="8" r="2.4" fill="#2E2A7A"/></svg>
+      Campus Lost Finder</button>
+    <nav class="nav" aria-label="Main">${links.map(l=>`<button data-act="nav" data-page="${l[0]}"${page===l[0]?' aria-current="page"':""}>${l[1]}</button>`).join("")}</nav>
+    <div class="who">${me?`<span>Hi, ${esc(me.name.split(" ")[0])}</span><button class="btn ghost small" data-act="logout">Log out</button>`:`<button class="btn small" data-act="nav" data-page="auth" data-role="student">Student login</button><button class="btn ghost small" data-act="nav" data-page="auth" data-role="admin">Admin login</button>`}</div>`;
+}
+
+/* browse */
+function filtered(){
+  const q=F.q.trim().toLowerCase();
+  return db.items.filter(it=>(F.closed||it.status!=="returned")
+    &&(F.type==="all"||it.type===F.type)&&(!F.cat||it.category===F.cat)&&(!F.loc||it.location===F.loc)
+    &&(!q||(it.title+" "+it.description+" "+it.category+" "+it.location).toLowerCase().includes(q)))
+    .sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+}
+function card(it){
+  const[st,cl]=statusOf(it);
+  return`<article class="tag ${it.type}"><button class="tag-btn" data-act="open" data-id="${it.id}" aria-label="${it.type==="lost"?"Lost":"Found"}: ${esc(it.title)}">
+    <span class="hole"></span>
+    <span class="band">${it.type==="lost"?"Lost":"Found"}<em>${fmtDate(it.date)}</em></span>
+    <span class="thumb">${it.image?`<img src="${it.image}" alt="">`:`<span class="ph">${esc(it.category)}</span>`}</span>
+    <span class="body"><strong>${esc(it.title)}</strong><span class="meta">${esc(it.location)}</span><span class="pill ${cl}">${st}</span></span>
+  </button></article>`;
+}
+function updateGrid(){
+  const list=filtered();
+  $("#count").textContent=list.length+(list.length===1?" item":" items")+(F.q||F.cat||F.loc||F.type!=="all"?" match your search":" on the board");
+  $("#grid").innerHTML=list.length?list.map(card).join(""):
+    `<div class="empty" style="grid-column:1/-1"><strong>Nothing matches yet.</strong><p>Try fewer words, or report the item so others can match it.</p><button class="btn" data-act="nav" data-page="report">Report an item</button></div>`;
+}
+function vBrowse(m){
+  const back=db.items.filter(i=>i.status==="returned").length;
+  m.innerHTML=`
+    <h1>Lost something on campus?<br>Check the board first.</h1>
+    <p class="lead">Students post what they lose and what they find. ${back} ${back===1?"item has":"items have"} already gone back to its owner.</p>
+    <div class="search"><input id="q" type="search" value="${esc(F.q)}" placeholder="Search: wallet, calculator, keys" aria-label="Search items" autocomplete="off"></div>
+    <div class="filters">
+      <div class="segb" role="group" aria-label="Type">
+        ${[["all","All"],["lost","Lost"],["found","Found"]].map(t=>`<button class="segbtn" data-act="ftype" data-v="${t[0]}" aria-pressed="${F.type===t[0]}">${t[1]}</button>`).join("")}
+      </div>
+      <select id="fcat" aria-label="Category"><option value="">All categories</option>${opts(CATS,F.cat)}</select>
+      <select id="floc" aria-label="Place"><option value="">All places</option>${opts(LOCS,F.loc)}</select>
+      <label class="chk"><input type="checkbox" id="fclosed"${F.closed?" checked":""}> Include returned items</label>
+    </div>
+    <p class="count" id="count"></p>
+    <div class="grid" id="grid"></div>`;
+  updateGrid();
+}
+
+/* report */
+function vReport(m){
+  if(!me){page="auth";toast("Log in to report an item.");return render()}
+  pendingImg="";
+  m.innerHTML=`<section class="narrow"><h1>Report an item</h1>
+    <p class="lead">Add as much detail as you can. Keep one detail back that only the real owner would know, so you can check claims later.</p>
+    <form id="report-form" class="form">
+      <fieldset class="seg"><legend>What happened?</legend>
+        <label><input type="radio" name="type" value="lost" checked><span>I lost something</span></label>
+        <label><input type="radio" name="type" value="found"><span>I found something</span></label>
+      </fieldset>
+      <label>Item name<input name="title" required maxlength="60" placeholder="e.g. Black wallet with college ID"></label>
+      <div class="two">
+        <label>Category<select name="category">${opts(CATS)}</select></label>
+        <label>Place<select name="location">${opts(LOCS)}</select></label>
+      </div>
+      <div class="two">
+        <label>Date<input type="date" name="date" required value="${today()}" max="${today()}"></label>
+        <label id="holdrow" hidden>Where is it now?<input name="holding" maxlength="60" placeholder="e.g. Security office"></label>
+      </div>
+      <label>Description<textarea name="description" rows="3" required maxlength="300" placeholder="Colour, brand, marks, what is inside"></textarea></label>
+      <label>Photo <span class="hint">(optional)</span><input type="file" id="photo" accept="image/*"></label>
+      <img id="preview" class="preview" alt="Photo preview" hidden>
+      <div><button class="btn big" type="submit">Post report</button></div>
+    </form></section>`;
+}
+function readImg(file){
+  return new Promise(res=>{
+    const r=new FileReader();
+    r.onload=()=>{const im=new Image();
+      im.onload=()=>{const sc=Math.min(1,600/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext("2d").drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.7))};
+      im.onerror=()=>res("");im.src=r.result};
+    r.onerror=()=>res("");r.readAsDataURL(file);
+  });
+}
+
+/* my activity */
+function vMine(m){
+  if(!me){page="auth";return render()}
+  const mine=db.items.filter(i=>i.userId===me.id).sort((a,b)=>b.id-a.id);
+  const hits=[];
+  mine.filter(i=>i.status==="open").forEach(i=>matchesFor(i).forEach(x=>hits.push({mine:i,o:x.o,s:x.s})));
+  const claims=db.claims.filter(c=>c.userId===me.id).sort((a,b)=>b.id-a.id);
+  const cl={pending:"wait",approved:"ok",rejected:"done"};
+  m.innerHTML=`<h1>My activity</h1>
+    <h2 class="sub">Possible matches</h2>
+    ${hits.length?`<ul class="rows">${hits.map(h=>`<li><button class="row" data-act="open" data-id="${h.o.id}"><span>Your ${h.mine.type} report <strong>${esc(h.mine.title)}</strong> may match the ${h.o.type} item <strong>${esc(h.o.title)}</strong></span><span class="pill ${h.s>=7?"ok":"wait"}">${h.s>=7?"Strong match":"Possible match"}</span></button></li>`).join("")}</ul>`
+      :`<p class="empty">No matches yet. We compare again every time someone posts.</p>`}
+    <h2 class="sub">My reports</h2>
+    ${mine.length?`<div class="grid">${mine.map(card).join("")}</div>`:`<div class="empty">You have not reported anything yet.<br><button class="btn" data-act="nav" data-page="report">Report an item</button></div>`}
+    <h2 class="sub">My claims</h2>
+    ${claims.length?`<ul class="rows">${claims.map(c=>{const it=byId(c.itemId);return`<li class="rowstatic"><span><strong>${esc(it?it.title:"Removed item")}</strong><br><span class="meta">${esc(c.message)}</span></span><span class="pill ${cl[c.status]}">${c.status[0].toUpperCase()+c.status.slice(1)}</span></li>`}).join("")}</ul>`
+      :`<p class="empty">Claims you send on other people's items show up here.</p>`}`;
+}
+
+/* admin */
+function vAdmin(m){
+  if(!me||me.role!=="admin"){page="browse";toast("The admin panel is for admins only.");return render()}
+  const pend=db.claims.filter(c=>c.status==="pending");
+  const open=db.items.filter(i=>i.status==="open").length;
+  const ret=db.items.filter(i=>i.status==="returned").length;
+  m.innerHTML=`<h1>Admin panel</h1>
+    <div class="stats">
+      <div class="stat"><b>${open}</b><span>Open reports</span></div>
+      <div class="stat"><b>${pend.length}</b><span>Claims to review</span></div>
+      <div class="stat"><b>${ret}</b><span>Returned to owners</span></div>
+      <div class="stat"><b>${db.users.length}</b><span>Registered users</span></div>
+    </div>
+    <h2 class="sub">Claims to review</h2>
+    ${pend.length?`<div style="display:flex;flex-direction:column;gap:10px">${pend.map(c=>{const it=byId(c.itemId);return`<div class="claimcard">
+        <div><strong>${esc(userName(c.userId))}</strong> ${it&&it.type==="found"?"is claiming":"says they found"} <button class="row" style="display:inline;width:auto;border:0;padding:0;background:none;text-decoration:underline;cursor:pointer" data-act="open" data-id="${it?it.id:0}">${esc(it?it.title:"a removed item")}</button></div>
+        <blockquote>${esc(c.message)}</blockquote>
+        <div class="acts"><button class="btn ok small" data-act="decide" data-cid="${c.id}" data-ok="1">Approve claim</button><button class="btn bad small" data-act="decide" data-cid="${c.id}" data-ok="0">Reject claim</button></div>
+      </div>`}).join("")}</div>`:`<p class="empty">No claims waiting. Nice and quiet.</p>`}
+    <h2 class="sub">All reports</h2>
+    <div class="tablewrap"><table><thead><tr><th>Item</th><th>Type</th><th>Status</th><th>Reported by</th><th>Actions</th></tr></thead><tbody>
+      ${db.items.slice().sort((a,b)=>b.id-a.id).map(it=>{const s=statusOf(it);return`<tr>
+        <td><button class="row" style="display:inline;width:auto;border:0;padding:0;background:none;text-decoration:underline;cursor:pointer" data-act="open" data-id="${it.id}">${esc(it.title)}</button></td>
+        <td>${it.type==="lost"?"Lost":"Found"}</td><td><span class="pill ${s[1]}">${s[0]}</span></td><td>${esc(userName(it.userId))}</td>
+        <td><div class="acts">${it.status!=="returned"?`<button class="btn small" data-act="resolve" data-id="${it.id}">Mark returned</button>`:""}<button class="btn bad small" data-act="del" data-id="${it.id}">Delete</button></div></td></tr>`}).join("")}
+    </tbody></table></div>`;
+}
+function decide(cid,ok){
+  const c=db.claims.find(x=>x.id===cid);if(!c)return;
+  const it=byId(c.itemId);
+  c.status=ok?"approved":"rejected";
+  if(ok&&it){it.status="claimed";db.claims.forEach(x=>{if(x.itemId===it.id&&x.id!==c.id&&x.status==="pending")x.status="rejected"})}
+  save();toast(ok?"Claim approved. Hand the item over, then mark it returned.":"Claim rejected.");render(true);
+}
+function resolveItem(id){const it=byId(id);if(!it)return;it.status="returned";save();toast("Marked as returned.");if(dlg.open)dlg.close();render(true)}
+function deleteItem(id){db.items=db.items.filter(i=>i.id!==id);db.claims=db.claims.filter(c=>c.itemId!==id);save();toast("Report deleted.");if(dlg.open)dlg.close();render(true)}
+
+/* auth */
+function vAuth(m){
+  const adm=authRole==="admin";
+  if(adm)authTab="login";
+  m.innerHTML=`<section class="narrow"><h1>${adm?"Admin login":authTab==="login"?"Student login":"Create a student account"}</h1>
+    <div class="tabs" role="group" aria-label="Login type">
+      <button data-act="authrole" data-v="student" aria-pressed="${!adm}">Student login</button>
+      <button data-act="authrole" data-v="admin" aria-pressed="${adm}">Admin login</button>
+    </div>
+    ${adm?"":`<div class="segb" style="margin-top:10px" role="group" aria-label="Account">
+      <button data-act="authtab" data-v="login" aria-pressed="${authTab==="login"}">I have an account</button>
+      <button data-act="authtab" data-v="register" aria-pressed="${authTab==="register"}">New student</button></div>`}
+    ${authTab==="login"?`<form id="login-form" class="form" style="margin-top:14px">
+      <label>${adm?"Admin email":"College email"}<input type="email" name="email" required autocomplete="username"></label>
+      <label>Password<input type="password" name="password" required autocomplete="current-password"></label>
+      <div><button class="btn big" type="submit">${adm?"Log in as admin":"Log in as student"}</button></div></form>`
+    :`<form id="reg-form" class="form" style="margin-top:14px">
+      <label>Full name<input name="name" required maxlength="40" autocomplete="name"></label>
+      <label>College email<input type="email" name="email" required placeholder="you@college.edu" autocomplete="username"><span class="hint">Only college emails ending in .edu or .ac.in are accepted.</span></label>
+      <label>Password<input type="password" name="password" required minlength="6" autocomplete="new-password"><span class="hint">At least 6 characters.</span></label>
+      <div><button class="btn big" type="submit">Create account</button></div></form>`}
+    ${authTab==="login"?`<div class="demo"><p>${adm?"Demo admin: admin@college.edu / admin123":"Demo student: student@college.edu / student123"}</p>
+      <div class="row2"><button class="btn${adm?" ghost":""}" data-act="demo" data-uid="${adm?1:2}">${adm?"Try as admin":"Try as student"}</button></div></div>`:""}
+  </section>`;
+}
+function loginAs(u){me=u;sSet(SKEY,String(u.id));page=u.role==="admin"?"admin":"browse";render();toast("Welcome, "+u.name.split(" ")[0]+".")}
+
+/* item dialog */
+function openItem(id){
+  const it=byId(id);if(!it)return;
+  openId=id;
+  const[st,cl]=statusOf(it);
+  const owner=me&&me.id===it.userId, admin=me&&me.role==="admin";
+  const myPend=me&&db.claims.some(c=>c.itemId===id&&c.userId===me.id&&c.status==="pending");
+  const flow=["Reported","Claim pending","Claim approved","Returned"];
+  const at=it.status==="returned"?3:it.status==="claimed"?2:pending(it).length?1:0;
+  let act="";
+  if(it.status==="returned")act=`<p class="note">This item is back with its owner.</p>`;
+  else if(!me)act=`<p class="note">Log in to ${it.type==="found"?"claim this item":"tell the owner you found it"}.</p><div><button class="btn" data-act="goto" data-page="auth">Log in or register</button></div>`;
+  else if(it.status==="claimed")act=`<p class="note">A claim is approved. Waiting for the handover.</p>`;
+  else if(owner)act=`<p class="note">This is your report. You will see claims and matches under My activity.</p>`;
+  else if(myPend)act=`<p class="note">Your claim is sent. The admin will review it.</p>`;
+  else act=`<form class="claim" id="claim-form" data-id="${id}"><label>${it.type==="found"?"Prove it is yours":"Tell the owner where it is"}
+      <textarea name="message" rows="3" required maxlength="300" placeholder="${it.type==="found"?"Describe something only the owner would know: what is inside, marks, lock screen":"Where you found it and where the owner can collect it"}"></textarea></label>
+      <div><button class="btn" type="submit">${it.type==="found"?"Send claim":"Send details"}</button></div></form>`;
+  const ctrl=[];
+  if(it.status!=="returned"&&(owner||admin))ctrl.push(`<button class="btn small" data-act="resolve" data-id="${id}">${admin&&!owner?"Mark returned":"Mark as resolved"}</button>`);
+  if(owner||admin)ctrl.push(`<button class="btn bad small" data-act="del" data-id="${id}">Delete report</button>`);
+  const mt=it.status==="open"?matchesFor(it):[];
+  dlg.innerHTML=`<div class="dhead ${it.type}"><span>${it.type==="lost"?"Lost item":"Found item"}</span><button data-act="close" aria-label="Close">Close</button></div>
+    <div class="dbody">
+      ${it.image?`<img class="dimg" src="${it.image}" alt="Photo of ${esc(it.title)}">`:`<div class="dph"><div class="ph">${esc(it.category)}</div></div>`}
+      <div><h2>${esc(it.title)}</h2><div style="margin-top:8px"><span class="pill ${cl}">${st}</span></div></div>
+      <dl><dt>Category</dt><dd>${esc(it.category)}</dd><dt>Place</dt><dd>${esc(it.location)}</dd><dt>Date</dt><dd>${fmtDate(it.date)}</dd><dt>Posted by</dt><dd>${esc(userName(it.userId))}</dd>${it.holding?`<dt>Held at</dt><dd>${esc(it.holding)}</dd>`:""}</dl>
+      <p>${esc(it.description)}</p>
+      <div class="steps" aria-label="Progress">${flow.map((f,i)=>`<span class="${i===at?"on":""}">${f}</span>`).join("")}</div>
+      ${act}
+      ${ctrl.length?`<div class="acts">${ctrl.join("")}</div>`:""}
+      ${mt.length?`<div><h3 style="margin-bottom:8px">Possible matches</h3><ul class="rows">${mt.map(x=>`<li><button class="row" data-act="open" data-id="${x.o.id}"><span><strong>${esc(x.o.title)}</strong><br><span class="meta">${x.o.type==="lost"?"Lost":"Found"} at ${esc(x.o.location)}, ${fmtDate(x.o.date)}</span></span><span class="pill ${x.s>=7?"ok":"wait"}">${x.s>=7?"Strong match":"Possible match"}</span></button></li>`).join("")}</ul></div>`:""}
+    </div>`;
+  if(!dlg.open)dlg.showModal();
+}
+
+/* router */
+function render(keep){
+  renderHeader();
+  const m=$("#main");
+  ({browse:vBrowse,report:vReport,mine:vMine,admin:vAdmin,auth:vAuth}[page]||vBrowse)(m);
+  if(!keep)window.scrollTo(0,0);
+  if(keep&&dlg.open&&openId&&byId(openId))openItem(openId);
+}
+
+/* events */
+document.addEventListener("click",e=>{
+  const el=e.target.closest("[data-act]");
+  if(!el){if(e.target===dlg)dlg.close();return}
+  const d=el.dataset;
+  switch(d.act){
+    case"nav":if(dlg.open)dlg.close();page=d.page;if(d.role)authRole=d.role;render();break;
+    case"authrole":authRole=d.v;render(true);break;
+    case"goto":dlg.close();page=d.page;render();break;
+    case"open":openItem(+d.id);break;
+    case"close":dlg.close();break;
+    case"ftype":F.type=d.v;document.querySelectorAll(".segbtn").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===F.type)));updateGrid();break;
+    case"authtab":authTab=d.v;render(true);break;
+    case"demo":loginAs(db.users.find(u=>u.id===+d.uid));break;
+    case"logout":me=null;sDel(SKEY);page="browse";render();toast("Logged out.");break;
+    case"decide":decide(+d.cid,d.ok==="1");break;
+    case"resolve":resolveItem(+d.id);break;
+    case"del":deleteItem(+d.id);break;
+    case"reset":
+      if(!resetArmed){resetArmed=true;el.textContent="Click again to confirm";setTimeout(()=>{resetArmed=false;el.textContent="Reset demo data"},4000)}
+      else{resetArmed=false;el.textContent="Reset demo data";sDel(KEY);sDel(SKEY);me=null;page="browse";seed().then(()=>{save();render();toast("Demo data restored.")})}
+      break;
+  }
+});
+document.addEventListener("input",e=>{if(e.target.id==="q"){F.q=e.target.value;updateGrid()}});
+document.addEventListener("change",async e=>{
+  const t=e.target;
+  if(t.id==="fcat"){F.cat=t.value;updateGrid()}
+  else if(t.id==="floc"){F.loc=t.value;updateGrid()}
+  else if(t.id==="fclosed"){F.closed=t.checked;updateGrid()}
+  else if(t.name==="type"&&t.closest("#report-form")){$("#holdrow").hidden=t.value!=="found"}
+  else if(t.id==="photo"){
+    const f=t.files&&t.files[0];pendingImg="";const pv=$("#preview");
+    if(f){pendingImg=await readImg(f);if(pendingImg){pv.src=pendingImg;pv.hidden=false}else{pv.hidden=true;toast("Could not read that image. Try another one.")}}else pv.hidden=true;
+  }
+});
+document.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const f=e.target,v=n=>(f.elements[n]?f.elements[n].value:"").trim();
+  if(f.id==="report-form"){
+    const type=f.elements.type.value;
+    const it={id:nid(),type,title:v("title"),category:v("category"),description:v("description"),image:pendingImg,location:v("location"),date:v("date"),status:"open",userId:me.id,holding:type==="found"?v("holding"):""};
+    if(!it.title||!it.description)return toast("Add an item name and a description.");
+    db.items.push(it);save();pendingImg="";page="browse";F.type="all";F.q="";F.cat="";F.loc="";render();
+    toast("Report posted.");openItem(it.id);
+  }else if(f.id==="claim-form"){
+    const id=+f.dataset.id,msg=v("message");
+    if(!msg)return;
+    db.claims.push({id:nid(),itemId:id,userId:me.id,message:msg,status:"pending",created:today()});
+    save();toast("Sent. The admin will review it.");render(true);openItem(id);
+  }else if(f.id==="login-form"){
+    const u=db.users.find(x=>x.email===v("email").toLowerCase());
+    if(!u||u.pw!==await hash(f.elements.password.value))return toast("Email or password is wrong. Check both and try again.");
+    if(authRole==="admin"&&u.role!=="admin")return toast("This account is not an admin. Use Student login.");
+    if(authRole==="student"&&u.role==="admin")return toast("This is an admin account. Use Admin login.");
+    loginAs(u);
+  }else if(f.id==="reg-form"){
+    const email=v("email").toLowerCase(),pw=f.elements.password.value;
+    if(!/^[^@\s]+@[^@\s]+\.(edu|ac\.in)$/i.test(email))return toast("Use your college email, ending in .edu or .ac.in.");
+    if(pw.length<6)return toast("Password needs at least 6 characters.");
+    if(db.users.some(u=>u.email===email))return toast("This email is already registered. Log in instead.");
+    const u={id:nid(),name:v("name"),email,pw:await hash(pw),role:"student"};
+    db.users.push(u);save();loginAs(u);
+  }
+});
+dlg.addEventListener("close",()=>{openId=null});
+
+/* start */
+(async function(){
+  const raw=sGet(KEY);
+  try{db=raw?JSON.parse(raw):null}catch(e){db=null}
+  if(!db||!db.items||!db.users){await seed();save()}
+  const sid=Number(sGet(SKEY));
+  me=db.users.find(u=>u.id===sid)||null;
+  render();
+})();
+</script>
+</body>
+</html>
